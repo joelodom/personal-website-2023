@@ -68,3 +68,22 @@ h1 {
   color: #ffffff;
 }
 
+@media (max-width: 600px) {
+  body {
+    padding: 10px; /* Reduce padding for smaller screens */
+  }
+
+  h1 {
+    font-size: 24px; /* Decrease the font size for smaller screens */
+  }
+
+  .navigation-options {
+    flex-direction: column; /* Stack navigation links vertically */
+    margin-top: 10px; /* Reduce the margin-top for smaller screens */
+  }
+
+  .navigation-link {
+    width: 90%; /* Expand the links to the full width of the container */
+    margin: 5px 0; /* Add some vertical spacing between links */
+  }
+}
