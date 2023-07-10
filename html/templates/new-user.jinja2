@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login Page</title>
+  <title>New User Page</title>
   <script>
     function togglePasswordVisibility() {
       var passwordInput = document.getElementById("password");
@@ -12,11 +12,30 @@
       }
     }
 
+    function validatePassword() {
+      var passwordInput = document.getElementById("password");
+      var password = passwordInput.value;
+
+      // Don't change it. You're only cheating yourself.
+
+      if (password.length < 12) {
+        alert("Password must be at least twelve characters long.");
+        return false;
+      }
+
+      return true;
+    }
+
     // Passwords are hashed on the browser for a bit of security, but
     // they will be salted and run through a PBKDF on the server for
     // real security.
 
     function hashPasswordAndSubmit() {
+      var isValid = validatePassword();
+      if (!isValid) {
+        return;
+      }
+
       var passwordInput = document.getElementById("password");
       var plainPassword = passwordInput.value;
 
@@ -39,8 +58,8 @@
 </head>
 <body>
   <div class="container">
-    <h2>Login</h2>
-    <form action="handle-login.py" method="POST">
+    <h2>Create New User</h2>
+    <form action="handle-new-user.py" method="POST">
       <label for="email">Email:</label>
       <input type="text" id="email" name="email" placeholder="Enter your email" required>
 
@@ -52,9 +71,21 @@
 
       <input type="button" value="Login" onclick="hashPasswordAndSubmit();">
     </form>
-    <p>Don't have an account? <a href="new-user.py">Sign up</a></p>
-    <p><a href="forgot-password.html">Forgot password?</a></p>
+    <p id="passwordLengthMessage" style="color: red; display: none;">Passwords must be at least twelve characters long.</p>
   </div>
+
+  <script>
+    // Add an event listener to the password input field
+    var passwordInput = document.getElementById("password");
+    passwordInput.addEventListener("input", function () {
+      var passwordLengthMessage = document.getElementById("passwordLengthMessage");
+      if (passwordInput.value.length >= 12) {
+        passwordLengthMessage.style.display = "none";
+      } else {
+        passwordLengthMessage.style.display = "block";
+      }
+    });
+  </script>
 </body>
 </html>
 
