@@ -1,12 +1,60 @@
-Content-Type: text/html
-
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My HTML5 Template</title>
+  <title>Login Page</title>
+  <script>
+    function togglePasswordVisibility() {
+      var passwordInput = document.getElementById("password");
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+      } else {
+        passwordInput.type = "password";
+      }
+    }
+
+    // Passwords are hashed on the browser for a bit of security, but
+    // they will be salted and run through a PBKDF on the server for
+    // real security.
+
+    function hashPasswordAndSubmit() {
+      var passwordInput = document.getElementById("password");
+      var plainPassword = passwordInput.value;
+
+      // Create a SHA-256 hash function
+      var sha256 = window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(plainPassword));
+
+      // Convert the hashed password to a hexadecimal string
+      var hashedPassword = sha256.then(function (hash) {
+        var hexString = Array.from(new Uint8Array(hash))
+          .map(byte => byte.toString(16).padStart(2, "0"))
+          .join("");
+
+        passwordInput.value = hexString;
+
+        // Submit the form
+        document.forms[0].submit();
+      });
+    }
+  </script>
 </head>
 <body>
-    <h1>Hello, {{ name }}!</h1>
+  <div class="container">
+    <h2>Login</h2>
+    <form action="handle-login.py" method="POST">
+      <label for="email">Email:</label>
+      <input type="text" id="email" name="email" placeholder="Enter your email" required>
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+      <input type="checkbox" id="showPassword" onclick="togglePasswordVisibility()">
+      <label for="showPassword">Show Password</label>
+
+      <input type="button" value="Login" onclick="hashPasswordAndSubmit();">
+    </form>
+    <p>Don't have an account? <a href="signup.html">Sign up</a></p>
+    <p><a href="forgot-password.html">Forgot password?</a></p>
+  </div>
 </body>
 </html>
 

@@ -14,4 +14,8 @@ def render_jinja(template, **kwargs):
       template_string = f.read()
 
     template = Template(template_string)
-    return template.render(kwargs)
+
+    headers = 'Content-Type: text/html'
+    rendered = template.render(kwargs)
+
+    return f'{headers}\n\n{rendered}'
