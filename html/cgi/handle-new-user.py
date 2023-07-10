@@ -3,16 +3,23 @@
 import cgi
 import hashlib
 import secrets
+from joel_utils import validation
+
+# Set the content type to HTML
+print("Content-type: text/html\n")
 
 # Create instance of FieldStorage
 form = cgi.FieldStorage()
 
 # Get the values from the form fields
-email = form.getvalue('email')
-password = form.getvalue('password')
-
-# Set the content type to HTML
-print("Content-type: text/html\n")
+try:
+    email = form.getvalue('email')
+    validation.validate_email_address(email)
+    password = form.getvalue('password')
+    validation.validate_string_length(password, 1024)
+except validation.ValidationException as ex:
+    print(ex)
+    exit()
 
 # Display the received email and password
 print("<h2>Received Data:</h2>")
