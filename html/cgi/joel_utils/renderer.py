@@ -2,7 +2,7 @@ import os
 from jinja2 import Template
 from . import system_utils
 
-def render_jinja(template):
+def render_jinja(template, **kwargs):
     '''
     Resolves file relative to the caller, renders it, and adds HTTP headers.
     '''
@@ -14,4 +14,4 @@ def render_jinja(template):
       template_string = f.read()
 
     template = Template(template_string)
-    return template.render(name='Joel')
+    return template.render(kwargs)
