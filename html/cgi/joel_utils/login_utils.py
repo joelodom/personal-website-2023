@@ -43,6 +43,35 @@ def get_user(email):
 
     return user_row # returns (email, salt, password)
 
+def check_user(email, password):
+    '''
+    Checks a login. Returns false if the login fails. May throw.
+    '''
+    
+    # First validate the input
+    try:
+        validation.validate_email_address(email)
+        validation.validate_string_length(password, 1024)
+    except validation.ValidationException as ex:
+        print(ex)
+        return
+
+    print(f'Password: {password}')
+    (email, db_salt, db_password) = get_user(email) # TODO: Throw more gracefully if user doesn't exist
+    salt_bytes = bytes.fromhex(db_salt)
+    print(f'<p>DB Salt: **{db_salt}**</p>')
+    print(f'<p>Encoded DB Salt: **{salt_bytes}**</p>')
+    encoded = password.encode("utf-8")  # Convert the password to bytes
+    salted = hashlib.pbkdf2_hmac("sha256", encoded, salt_bytes, iterations=310000)
+
+    print(f'DB PW: <p>**{db_password}**</p>    Salted: <p>**{salted.hex()}**</p>')
+
+    if salted.hex() == db_password:
+        return True
+
+    return False
+
+
 def new_user(email, password):
     '''
     Creates a new user. This function will validate the input and make sure the user doesn't exist already.
@@ -59,7 +88,7 @@ def new_user(email, password):
     # Make sure the user doesn't already exist
     row = get_user(email)
     if row is not None:
-        assert(False) # TODO: turn into a real error
+        raise Exception('User already exists.') # TODO: This reveals who uses my website, so...???
 
     # Salt and hash the password
 

@@ -18,7 +18,7 @@ try:
     # IMPORTANT: new_user must validate the input and make sure the user doesn't exist
     login_utils.new_user(email, password)
 except Exception as ex:
-    print(f'<p>Exception: {ex}</p>')
+    print(f'<p>Exception: {str(ex)}</p>')
     exit(-1)
 
 
