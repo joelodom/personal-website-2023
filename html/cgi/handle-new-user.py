@@ -1,37 +1,30 @@
 #!/usr/bin/env python3
 
 import cgi
-import hashlib
-import secrets
-from joel_utils import validation
+from joel_utils import login_utils
 
 # Set the content type to HTML
 print("Content-type: text/html\n")
 
-# Create instance of FieldStorage
-form = cgi.FieldStorage()
-
-# Get the values from the form fields
 try:
+    # Create instance of FieldStorage
+    form = cgi.FieldStorage()
+    
+    # Get the values from the form fields
     email = form.getvalue('email')
-    validation.validate_email_address(email)
     password = form.getvalue('password')
-    validation.validate_string_length(password, 1024)
-except validation.ValidationException as ex:
-    print(ex)
-    exit()
+    
+    # Create the user
+    # IMPORTANT: new_user must validate the input and make sure the user doesn't exist
+    login_utils.new_user(email, password)
+except Exception as ex:
+    print(f'<p>Exception: {ex}</p>')
+    exit(-1)
+
 
 # Display the received email and password
 print("<h2>Received Data:</h2>")
 print("<p>Email: {}</p>".format(email))
 print("<p>Password: {}</p>".format(password))
 
-
-password = password.encode("utf-8")  # Convert the password to bytes
-salt = secrets.token_bytes(16)
-
-key = hashlib.pbkdf2_hmac("sha256", password, salt, iterations=310000)
-
-# The derived key can be used for encryption, authentication, or other purposes
-print(f"<p>Key: {key.hex()}</p>")
-
+print('<p>New user created!</p>')
