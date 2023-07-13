@@ -18,12 +18,11 @@ def base64_to_bytes(base64_string):
 
 def encrypt_aes_gcm(plaintext, key):
     '''
-    Plaintext is a byte array. Key may be a string or bytes because
-    it will be hashed to 256 bits (not that that adds any entropy).
+    Plaintext is a byte array. Key is a bytes string.
     '''
 
     # Apply SHA-256 hashing to the key
-    hashed_key = hashlib.sha256(key.encode('utf-8')).digest()
+    hashed_key = hashlib.sha256(key).digest()
 
     # Generate a random 96-bit nonce
     nonce = os.urandom(12)
@@ -36,7 +35,8 @@ def encrypt_aes_gcm(plaintext, key):
     return nonce + ciphertext # concats even if nonce is zeros
 
 def decrypt_aes_gcm(ciphertext, key):
-    hashed_key = hashlib.sha256(key.encode('utf-8')).digest()
+    '''Key is bytes.'''
+    hashed_key = hashlib.sha256(key).digest()
     aesgcm = AESGCM(hashed_key)
     plaintext = aesgcm.decrypt(ciphertext[:12], ciphertext[12:], b'')
     return plaintext
@@ -64,14 +64,65 @@ def decrypt_class(ciphertext, key):
     c = pickle.loads(decompressed)
     return c
 
-#class foo:
-#    joel = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaoesuntaoeusnhaoeusnhaoesnutheoasnuaonuhnuouhet'
-#
+def derive_key_for_user(user):
+    '''
+    Uses the global secret and user's hashed password to derive a secret for that user.
+
+    TODO: I have to think about what to do if the user changes their password.
+    '''
+
+    global_secret = b'TODO'
+    user_secret = b'TODO'
+
+    return hashlib.sha256(global_secret + user_secret).digest()
+
+class Session:
+    user = None
+    embedded_class = None
+
+def create_session_from_class(c, user):
+    '''
+    Creates a session blob from the class.
+
+    The session blob is ... (describe theory here)
+    '''
+
+    session = Session()
+    session.user =  user
+    session.embedded_class = c
+
+    key = derive_key_for_user(session.user)
+
+    return encrypt_class(session, key)
+
+def unpack_session_to_class(session, expected_user):
+    '''
+    Throws if there's a problem.
+
+    TODO: Make sure it throws if there's a problem.
+    '''
+
+    key = derive_key_for_user(expected_user)
+    decrypted = decrypt_class(session, key)
+
+    if decrypted.user != expected_user:
+        raise Exception('The session user does not match the expected user.')
+
+    return decrypted.embedded_class
+
+
+
+
+
+
+class foo:
+    joel = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaoesuntaoeusnhaoeusnhaoesnutheoasnuaonuhnuouhet'
+
 #f = foo()
-#c = encrypt_class(f, 'key')
+#c = create_session_from_class(f, 'joel@example.com')
 #print(c)
 #print(len(c))
-#f2 = decrypt_class(c, 'key')
+#f2 = unpack_session_to_class(c, 'joel@example.com')
 #print(f2.joel)
 #print(len(f2.joel))
 
