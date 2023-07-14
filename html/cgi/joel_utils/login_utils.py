@@ -24,7 +24,7 @@ def get_user(email):
 
     # Define the SQL query to select the row for the given email
     select_user_query = """
-        SELECT email, salt, password FROM users
+        SELECT email, salt, password, session_secret FROM users
         WHERE email = %(email)s
     """
 
@@ -41,7 +41,7 @@ def get_user(email):
     cursor.close()
     cnx.close()
 
-    return user_row # returns (email, salt, password)
+    return user_row # returns (email, salt, password, session_secret)
 
 def check_user(email, password):
     '''
@@ -57,7 +57,7 @@ def check_user(email, password):
         return
 
     print(f'Password: {password}')
-    (email, db_salt, db_password) = get_user(email) # TODO: Throw more gracefully if user doesn't exist
+    (email, db_salt, db_password, session_secret) = get_user(email) # TODO: Throw more gracefully if user doesn't exist
     salt_bytes = bytes.fromhex(db_salt)
     print(f'<p>DB Salt: **{db_salt}**</p>')
     print(f'<p>Encoded DB Salt: **{salt_bytes}**</p>')
@@ -96,11 +96,14 @@ def new_user(email, password):
     encoded = password.encode("utf-8")  # Convert the password to bytes
     salted = hashlib.pbkdf2_hmac("sha256", encoded, salt, iterations=310000)
 
+    # Create a session secret
+
+    session_secret = secrets.token_bytes(32)
+
     # Add the user
 
-    dbpw = my_secrets.get_secret(my_secrets.DATABASE_PASSWORD)
-
     # Connect to the MySQL server
+    dbpw = my_secrets.get_secret(my_secrets.DATABASE_PASSWORD)
     cnx = mysql.connector.connect(
         host='localhost',
         user='ubuntu',
@@ -115,13 +118,14 @@ def new_user(email, password):
     new_entry = {
         'email': email,
         'salt': salt.hex(),
-        'password': salted.hex()
+        'password': salted.hex(),
+        'session_secret': session_secret.hex()
     }
     
     # Define the SQL query to insert the new entry
     add_entry_query = """
-        INSERT INTO users (email, salt, password)
-        VALUES (%(email)s, %(salt)s, %(password)s)
+        INSERT INTO users (email, salt, password, session_secret)
+        VALUES (%(email)s, %(salt)s, %(password)s, %(session_secret)s)
     """
     
     # Execute the query to insert the new entry
