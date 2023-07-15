@@ -54,30 +54,30 @@ def decrypt_aes_gcm(ciphertext, aad, key):
 
 VERSION = 1 # The version of these sessions
 
-HEADER_VERSION = 'version'
-HEADER_PRINCIPAL = 'principal'
+SESSION_HEADER_VERSION = 'version'
+SESSION_HEADER_PRINCIPAL = 'principal'
+SESSION_HEADER_SESSION_ID = 'session-id'
+SESSION_HEADER_SEQUENCE_NUM = 'sequence-num'
 
-def make_session_header(email):
-    '''
-    Outputs JSON to be used as AAD for the session.
-    '''
-
-    data = {
-        HEADER_VERSION: VERSION,
-        HEADER_PRINCIPAL: email
+def make_session_header_dict(principal, session_id, sequence_num):
+    return {
+        SESSION_HEADER_VERSION: VERSION,
+        SESSION_HEADER_PRINCIPAL: principal,
+        SESSION_HEADER_SESSION_ID: session_id,
+        SESSION_HEADER_SEQUENCE_NUM: sequence_num
     }
-
-    return json.dumps(data)
 
 def unpack_session_header(j):
     '''
-    Takes json and outputs version and email.
+    Takes json and outputs session data.
     '''
 
     data = json.loads(j)
 
-    return (int(data[HEADER_VERSION]), data[HEADER_PRINCIPAL])
-    
+    return (int(data[SESSION_HEADER_VERSION]),
+            data[SESSION_HEADER_PRINCIPAL],
+            data[SESSION_HEADER_SESSION_ID],
+            data[SESSION_HEADER_SEQUENCE_NUM])
 
 def encrypt_class(c, aad, key):
     '''
@@ -86,7 +86,7 @@ def encrypt_class(c, aad, key):
 
     pickled = pickle.dumps(c)
     compressed = zlib.compress(pickled)
-    ciphertext = encrypt_aes_gcm(compressed, aad, key) # throws if validation fails
+    ciphertext = encrypt_aes_gcm(compressed, aad, key)
     return bytes_to_base64(ciphertext)
 
 def decrypt_class(ciphertext, aad, key):
@@ -95,7 +95,7 @@ def decrypt_class(ciphertext, aad, key):
     '''
 
     ct = base64_to_bytes(ciphertext)
-    plaintext = decrypt_aes_gcm(ct, aad, key)
+    plaintext = decrypt_aes_gcm(ct, aad, key) # throws if validation fails
     decompressed = zlib.decompress(plaintext)
     c = pickle.loads(decompressed)
     return c
@@ -110,24 +110,42 @@ def derive_key_for_user(user):
 
     return hashlib.sha256(global_secret + user_secret).digest()
 
-def create_session_from_class(c, user):
-    '''
-    Creates a session blob from the class.
-    '''
+def new_session_id():
+    return bytes_to_base64(os.urandom(32))
 
-    key = derive_key_for_user(user)
-    aad = make_session_header(user).encode('utf-8')
-    return encrypt_class(c, aad, key)
+#######
+#
+# Joel, the main external API is here. Move to the top and trace through and document.
+#
+######
 
-def unpack_session_to_class(session, expected_user):
-    '''
-    Throws if there's a problem.
+class SessionData:
+    pass # caller may attach anything to this class
 
-    TODO: Make sure it throws if there's a problem.
-    '''
+class Session:
+    header = None # version, session id, principal, sequence number
+    session_data = SessionData()
 
-    key = derive_key_for_user(expected_user)
-    expected_aad = make_session_header(expected_user).encode('utf-8')
-    decrypted = decrypt_class(session, expected_aad, key)
+def new_session(principal):
+    session = Session()
+    session_id = new_session_id()
+    session.header = make_session_header_dict(principal, session_id, 0)
+    return session
 
-    return decrypted
+def pack_session(session):
+    
+    # increment the sequence number and update the cache
+
+    before = session.header[SESSION_HEADER_SEQUENCE_NUM]
+    session.header[SESSION_HEADER_SEQUENCE_NUM] += 1
+    assert(session.header[SESSION_HEADER_SEQUENCE_NUM] == before + 1)
+
+    # TODO: update the cache / database here
+
+    # pack the session into an encrypted blob
+
+    aad = json.dumps(session.header).encode('utf-8')
+    key = derive_key_for_user(session.header[SESSION_HEADER_PRINCIPAL])
+    encrypted = encrypt_class(session.session_data, aad, key)
+
+    return encrypted

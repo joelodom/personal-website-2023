@@ -8,6 +8,14 @@ class TestClass:
 def test_encrypted_session():
     print('Testing encrypted_session...')
 
+    # test bytes and base64
+
+    b = b'Hollywood Park'
+    encoded = encrypted_session.bytes_to_base64(b)
+    print(f'Encoded bytes: {encoded}')
+    decoded = encrypted_session.base64_to_bytes(encoded)
+    assert(decoded == b)
+
     # test encryption and decryption
 
     plaintext = b'We were born without time,'
@@ -36,20 +44,9 @@ def test_encrypted_session():
     except:
         pass
 
-    print()
-
-    # test packing and unpacking JSON header
-
-    email = 'joel@example.com'
-    j = encrypted_session.make_session_header(email)
-    print(f'Session header: {j}')
-    (v, e) = encrypted_session.unpack_session_header(j)
-    assert(v == encrypted_session.VERSION)
-    assert(e == email)
-
     # test encrypting and decrypting a class
     
-    aad = j.encode('utf-8') # this is how I plan to actually use it, anyway
+    aad = b'I could tell you you were all I ever wanted, dear.'
 
     c = TestClass()
 
@@ -64,7 +61,7 @@ def test_encrypted_session():
 
     # test bad email for session header
 
-    bad_aad = encrypted_session.make_session_header('nope@example.com')
+    bad_aad = b"I could utter every word you hoped you\'d hear."
     
     try:
         encrypted_session.decrypt_class(encrypted, bad_aad, key)
@@ -72,28 +69,39 @@ def test_encrypted_session():
     except:
         pass
 
-    # test making a session from a class
+    # test new_session_id
+    session_id = encrypted_session.new_session_id()
+    session_id2 = encrypted_session.new_session_id()
+    print(f'Session ID: {session_id}')
+    assert(len(session_id) > 30)
+    assert(session_id != session_id2)
 
-    session = encrypted_session.create_session_from_class(c, email)
-    print(f'Session: {session}')
+    # test make_session_header_dict
+    PRINCIPAL = 'joel@example.com'
+    SEQUENCE_NUM = 3141
+    d = encrypted_session.make_session_header_dict(
+            PRINCIPAL, session_id, SEQUENCE_NUM)
+    print(f'Session Header: {d}')
+    assert(d[encrypted_session.SESSION_HEADER_VERSION] == encrypted_session.VERSION)
+    assert(d[encrypted_session.SESSION_HEADER_PRINCIPAL] == PRINCIPAL)
+    assert(d[encrypted_session.SESSION_HEADER_SESSION_ID] == session_id)
+    assert(d[encrypted_session.SESSION_HEADER_SEQUENCE_NUM] == SEQUENCE_NUM)
 
-    decrypted = encrypted_session.unpack_session_to_class(session, email)
+    # test new_session
 
-    assert(decrypted.zip == c.zip)
-    assert(decrypted.zap == c.zap)
-    assert(decrypted.bang == c.bang)
+    PRINCIPAL = 'joel@example.com'
+    session = encrypted_session.new_session(PRINCIPAL)
 
-    # test tampering with session
+    d = session.header # so I can cut and paste from above
+    assert(d[encrypted_session.SESSION_HEADER_VERSION] == encrypted_session.VERSION)
+    assert(d[encrypted_session.SESSION_HEADER_PRINCIPAL] == PRINCIPAL)
+    assert(d[encrypted_session.SESSION_HEADER_SEQUENCE_NUM] == 0)
 
-    TEST_INDEX = 6 # arbitrary
-    replacement = 'a' if session[TEST_INDEX] != 'a' else 'b'
-    session = session[:TEST_INDEX] + replacement + session[TEST_INDEX:]
+    assert(session.session_data is not None)
 
-    try:
-        decrypted = encrypted_session.unpack_session_to_class(session, email)
-        assert(False) # should have failed
-    except:
-        pass
+    # test pack_session
+    packed = encrypted_session.pack_session(session)
+    print(f'Packed session: {packed}')
 
 
 def run_all_tests():
