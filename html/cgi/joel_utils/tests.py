@@ -1,4 +1,5 @@
 import encrypted_session
+import json
 
 class TestClass:
     zip = 'zip'
@@ -100,11 +101,40 @@ def test_encrypted_session():
     assert(session.session_data is not None)
 
     # test pack_session
-    packed = encrypted_session.pack_session(session)
+
+    TEST_VALUE = 'To be used later to test unpacking'
+    session.session_data.test_value = TEST_VALUE
+
+    (aad, packed) = encrypted_session.pack_session(session)
+
+    print(f'AAD: {aad}')
     print(f'Packed session: {packed}')
 
+    # test sanitize_session_header (could use some failure tests...)
+    d = json.loads(aad.decode())
+    encrypted_session.sanitize_session_header(d)
+
+    # test unpack_session
+
+    unpacked = encrypted_session.unpack_session(aad, packed)
+
+    d = session.header # so I can cut and paste from above
+    assert(d[encrypted_session.SESSION_HEADER_VERSION] == encrypted_session.VERSION)
+    assert(d[encrypted_session.SESSION_HEADER_PRINCIPAL] == PRINCIPAL)
+    assert(d[encrypted_session.SESSION_HEADER_SEQUENCE_NUM] == 1)
+
+    assert(unpacked.session_data.test_value == TEST_VALUE)
 
 def run_all_tests():
     test_encrypted_session()
 
-run_all_tests()
+try:
+    run_all_tests()
+    print()
+    print("=== No exceptions. All tests passed. ===")
+    print()
+except Exception as ex:
+    print()
+    print("*** EXCEPTIONS. TESTS FAILED. ***")
+    print()
+    raise(ex)
