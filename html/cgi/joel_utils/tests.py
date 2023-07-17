@@ -159,14 +159,28 @@ def test_database_utils():
 
 def test_secrets():
     print("Testing secrets...")
+
     try:
         my_secrets.create_global_secret_in_database()
         assert(False) # should already exist, so this should throw
     except:
         pass
+
     secret = my_secrets.get_secret_from_database(my_secrets.GLOBAL_SECRET)
     assert(secret is not None)
     #print(f"Global secret: {secret}")
+
+    secret2 = my_secrets.get_secret(my_secrets.GLOBAL_SECRET)
+    assert(secret2 == secret)
+
+    # hit memcached this time
+    secret2 = my_secrets.get_secret(my_secrets.GLOBAL_SECRET)
+    assert(secret2 == secret)
+
+    # hit memcached directly
+    mc = my_memcached.MemcachedClient()
+    secret2 = mc.get(my_secrets.GLOBAL_SECRET)
+    assert(secret2 == secret)
 
 def run_all_tests():
     test_memcached()
