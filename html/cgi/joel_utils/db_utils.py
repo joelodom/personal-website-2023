@@ -33,6 +33,7 @@ class MySQLDatabase:
             self.connection.close()
 
     def execute_query(self, query, is_select):
+        # TODO: Do I need to sanitize here or elsewhere??
         try:
             self.cursor.execute(query)
             self.connection.commit()

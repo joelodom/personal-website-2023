@@ -3,6 +3,7 @@ import json
 import my_memcached
 import db_utils
 import os
+import my_secrets
 
 class TestClass:
     zip = 'zip'
@@ -144,8 +145,9 @@ def test_database_utils():
     print("Testing database utils...")
     KEY = encrypted_session.bytes_to_base64(os.urandom(32))
     VALUE = encrypted_session.bytes_to_base64(os.urandom(32))
+    query = f"INSERT INTO table_for_tests (some_key, some_value) VALUES ('{KEY}', '{VALUE}')"
     with db_utils.MySQLDatabase() as db:
-        result = db.execute_query(f"INSERT INTO table_for_tests (some_key, some_value) VALUES ('{KEY}', '{VALUE}')", False)
+        result = db.execute_query(query, False)
         assert(result is None)
         result = db.execute_query("SELECT * FROM table_for_tests", True)
         for row in result:
@@ -155,9 +157,21 @@ def test_database_utils():
         else:
             raise Exception("key, value not found")
 
+def test_secrets():
+    print("Testing secrets...")
+    try:
+        my_secrets.create_global_secret_in_database()
+        assert(False) # should already exist, so this should throw
+    except:
+        pass
+    secret = my_secrets.get_secret_from_database(my_secrets.GLOBAL_SECRET)
+    assert(secret is not None)
+    #print(f"Global secret: {secret}")
+
 def run_all_tests():
-    test_database_utils()
     test_memcached()
+    test_database_utils()
+    test_secrets()
     test_encrypted_session()
 
 try:
