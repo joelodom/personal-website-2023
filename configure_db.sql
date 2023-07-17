@@ -10,3 +10,7 @@ CREATE TABLE IF NOT EXISTS secrets (
     secret_value VARCHAR(255) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS table_for_tests (
+    some_key VARCHAR(255) PRIMARY KEY,
+    some_value VARCHAR(255) NOT NULL
+);

@@ -1,6 +1,8 @@
 import encrypted_session
 import json
 import my_memcached
+import db_utils
+import os
 
 class TestClass:
     zip = 'zip'
@@ -138,7 +140,23 @@ def test_memcached():
     value = mc.get(KEY)
     assert(value is None)
 
+def test_database_utils():
+    print("Testing database utils...")
+    KEY = encrypted_session.bytes_to_base64(os.urandom(32))
+    VALUE = encrypted_session.bytes_to_base64(os.urandom(32))
+    with db_utils.MySQLDatabase() as db:
+        result = db.execute_query(f"INSERT INTO table_for_tests (some_key, some_value) VALUES ('{KEY}', '{VALUE}')", False)
+        assert(result is None)
+        result = db.execute_query("SELECT * FROM table_for_tests", True)
+        for row in result:
+            if row[0] == KEY:
+                assert(row[1] == VALUE)
+                break
+        else:
+            raise Exception("key, value not found")
+
 def run_all_tests():
+    test_database_utils()
     test_memcached()
     test_encrypted_session()
 
