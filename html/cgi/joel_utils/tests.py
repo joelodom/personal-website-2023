@@ -1,5 +1,6 @@
 import encrypted_session
 import json
+import my_memcached
 
 class TestClass:
     zip = 'zip'
@@ -125,7 +126,20 @@ def test_encrypted_session():
 
     assert(unpacked.session_data.test_value == TEST_VALUE)
 
+def test_memcached():
+    print("Testing memcached...")
+    KEY = 'test-key'
+    VALUE = 'test-value'
+    mc = my_memcached.MemcachedClient()
+    mc.set(KEY, VALUE, 60)
+    value = mc.get(KEY)
+    assert(value == VALUE)
+    mc.delete(KEY)
+    value = mc.get(KEY)
+    assert(value is None)
+
 def run_all_tests():
+    test_memcached()
     test_encrypted_session()
 
 try:

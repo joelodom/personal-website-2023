@@ -1,4 +1,3 @@
-# TODO: Make sure all of these are used
 import pickle
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -114,7 +113,7 @@ def new_session_id():
 
 #######
 #
-# Joel, the main external API is here. Move to the top and trace through and document.
+# Move to the top and trace through and document.
 # Remember to write the module top down and the tests bottoms up.
 #
 ######
@@ -155,9 +154,6 @@ def pack_session(session):
 def sanitize_session_header(header):
     # Takes a session header and performs basic validation and sanitization
 
-    # TODO: Think about how to raise errors in general so they are all using the same
-    # exception type, etc.
-
     assert(header[SESSION_HEADER_VERSION] == VERSION)
     validation.validate_email_address(header[SESSION_HEADER_PRINCIPAL])
     assert(isinstance(header[SESSION_HEADER_SEQUENCE_NUM], int))
@@ -190,4 +186,3 @@ def unpack_session(aad, encrypted):
     session.session_data = decrypt_class(encrypted, aad, key)
 
     return session
-    
