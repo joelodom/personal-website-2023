@@ -14,10 +14,10 @@ def get_secret(key):
             return f.read().strip()
 
     memcached_client = my_memcached.MemcachedClient()
-    secret = memcached_client.get(key)
+    secret = memcached_client.get(key)[0]
 
     if secret is None:
-        secret = get_secret_from_database(key)
+        secret = get_secret_from_database(key)[0]
         if secret is None:
             raise Exception(f"Could not fetch secret {key}")
         memcached_client.set(key, secret)

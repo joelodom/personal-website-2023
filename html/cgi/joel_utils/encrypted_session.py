@@ -7,6 +7,9 @@ import base64
 import os
 import json
 import validation
+import my_memcached
+import db_utils
+import my_secrets
 
 def bytes_to_base64(bytes_array):
     encoded_bytes = base64.b64encode(bytes_array)
@@ -100,13 +103,18 @@ def decrypt_class(ciphertext, aad, key):
     c = pickle.loads(decompressed)
     return c
 
-def derive_key(): # TODO: implement this and tests
-    global_secret = b'TODO'
-    user_secret = b'TODO'
-    session_id = b'TODO'
-    sequence_num = b'TODO'
+def derive_key(session_id, principal, seq_num):
+    global_secret = my_secrets.get_secret(my_secrets.GLOBAL_SECRET)
+    print(f"Global secret: {global_secret}")
+    global_secret = base64_to_bytes(global_secret)
 
-    return hashlib.sha256(global_secret + user_secret + session_id + sequence_num).digest()
+    user_secret = b'TODO'
+
+    session_id_bytes = base64_to_bytes(session_id)
+    
+    sequence_num = str(seq_num).encode("utf-8")
+
+    return hashlib.sha256(global_secret + user_secret + session_id_bytes + sequence_num).digest()
 
 def new_session_id():
     return bytes_to_base64(os.urandom(32))
@@ -146,7 +154,9 @@ def pack_session(session):
     # pack the session into an encrypted blob
 
     aad = json.dumps(session.header).encode('utf-8')
-    key = derive_key() # TODO
+    key = derive_key(session.header[SESSION_HEADER_SESSION_ID],
+        session.header[SESSION_HEADER_PRINCIPAL],
+        session.header[SESSION_HEADER_SEQUENCE_NUM])
     encrypted = encrypt_class(session.session_data, aad, key)
 
     return (aad, encrypted)
@@ -160,7 +170,25 @@ def sanitize_session_header(header):
     assert(len(base64_to_bytes(header[SESSION_HEADER_SESSION_ID])) == 32)
 
 def get_session_from_db(session_id):
-    return ('TODO', 'TODO') # and remember tests
+    '''Takes b64-encoded 128-bit session id and returns (principal, expected_seq_num)'''
+
+    # first try memcached
+    memcached_client = my_memcached.MemcachedClient()
+    session_from_mc = memcached.get(session_id)
+    if session_from_mc is not None:
+        session_from_mc.split(' ')
+    
+    # now go to the database
+    query = f"SELECT principal, expected_seq_num FROM user_sessions WHERE session_id = '{session_id}'"
+    with db_utils.MySQLDatabase() as db:
+        result = db.execute_query(query, True)
+    principal = result[0]
+    expected_seq_num = result[1]
+
+    # cache in memcached
+    memcached_client.set(session_id, f"{principal} {expected_seq_num}")
+
+    return (principal, expected_seq_num)
 
 def unpack_session(aad, encrypted):
 
@@ -182,7 +210,7 @@ def unpack_session(aad, encrypted):
 
     # Decrypt
 
-    key = derive_key() # TODO
+    key = derive_key(session_id, principal, expected_seq_num)
     session.session_data = decrypt_class(encrypted, aad, key)
 
     return session
