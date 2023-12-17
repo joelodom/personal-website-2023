@@ -2,6 +2,7 @@ import json
 import boto3
 import os
 import logging
+import base64
 
 #
 # TODO: Don't use the same bucket as the website content
@@ -16,6 +17,11 @@ logger.setLevel(logging.INFO)
 
 s3 = boto3.client('s3')
 
+def encode_to_base64(input_string):
+    byte_data = input_string.encode('utf-8')
+    base64_encoded = base64.b64encode(byte_data)
+    return base64_encoded.decode('utf-8')
+
 def lambda_handler(event, context):
     logger.info("Event: " + json.dumps(event))
     
@@ -23,7 +29,8 @@ def lambda_handler(event, context):
     key = event['queryStringParameters']['key']
     value = event['queryStringParameters']['value']
 
-    key = FOLDER + '/' + key
+    # base64 sanitizes the input
+    key = FOLDER + '/' + encode_to_base64(key)
         
     try:
         # Check if the file already exists

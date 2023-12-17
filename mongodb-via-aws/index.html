@@ -1,26 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hello World Page</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f0f0;
+    <title>Joel's Sample AWS Application that Uses MongoDB</title>
+    <script>
+        function generateRandomBase64() {
+            var array = new Uint8Array(32); // 256 bits
+            window.crypto.getRandomValues(array);
+            return btoa(String.fromCharCode.apply(null, array));
         }
-        h1 {
-            color: #333;
+
+        function submitData() {
+            var value = document.getElementById('inputBox').value;
+            var key = generateRandomBase64();
+            var url = 'https://akxfwmdlc6.execute-api.us-east-1.amazonaws.com/production?key=' + encodeURIComponent(key) + '&value=' + encodeURIComponent(value);
+            // Making a GET request
+            window.location.href = url;
         }
-    </style>
+    </script>
 </head>
 <body>
-    <h1>Hello World!</h1>
+    <input type="text" id="inputBox" placeholder="Enter some text to store:">
+    <button onclick="submitData()">Submit</button>
 </body>
 </html>
-
-<!--https://akxfwmdlc6.execute-api.us-east-1.amazonaws.com/production?key=fromff&value=w00t-->
