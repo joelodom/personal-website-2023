@@ -1,6 +1,7 @@
 import json
 import boto3
 import os
+import logging
 
 #
 # TODO: Don't use the same bucket as the website content
@@ -10,9 +11,14 @@ import os
 BUCKET = 'joelodom'
 FOLDER = 'received-data'
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
+    logger.info("Event: " + json.dumps(event))
+    
     bucket_name = BUCKET
     key = event['queryStringParameters']['key']
     value = event['queryStringParameters']['value']
