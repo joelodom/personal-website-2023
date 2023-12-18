@@ -71,12 +71,11 @@ def insert_key_value(key, val): # into MongoDB
     response_data = response.read().decode()
     if response.status == 201:
         logger.info("Document inserted successfully.")
-        logger.debug("Response: " + response_data)
+        logger.debug("Response: " + str(response_data))
     else:
         logger.error("Failed to insert document.")
         logger.info("Status Code: " + str(response.status))
-        logger.info("Response: " + response_data)
-
+        logger.info("Response: " + str(response_data))
 
 
 def encode_to_base64(input_string): # returns a string
@@ -92,10 +91,16 @@ def lambda_handler(event, context): # entry point for the lambda
     key = event['queryStringParameters']['key']
     val = event['queryStringParameters']['value']
 
-    # base64 sanitizes the input
+    # base64 sanitizes the input, kind of
     key = encode_to_base64(key)
+    val = encode_to_base64(val)
 
     insert_key_value(key, val)
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps('File created successfully.')
+    }
 
 
 #conn.close() # TODO: Is there a place for Lambda teardown so we can be nice?
