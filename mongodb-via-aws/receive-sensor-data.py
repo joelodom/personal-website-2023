@@ -1,26 +1,30 @@
+#
+# AWS Lambda function to receive an API request and insert the data into MongoDB.
+# Going through AWS API Gateway and AWS Lambda incur cost, but you get the nice
+# benefits that come with AWS, including security, etc.
+#
+
 import json
 import boto3
 import logging
 import base64
 from botocore.exceptions import ClientError
-
-#
-# TODO: Don't use the same bucket as the website content
-#       (For demo only)
-#
-
-BUCKET = 'joelodom'
-FOLDER = 'received-data'
-MONGO_DB_API_KEY = 'mongo-joel-api-key2'
-MONGO_DB_API_KEY_REGION = 'us-east-1'
-KEY_NAME = 'mongodb-api-key'
+import http.client
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-s3 = boto3.client('s3')
+MONGO_DB_API_KEY = "mongo-joel-api-key2"
+MONGO_DB_API_KEY_REGION = "us-east-1"
+KEY_NAME = "mongodb-api-key"
 
-# Create a Secrets Manager client
+MONGO_DATASOURCE = "joelodom"
+MONGO_DATABASE = "sensor-database"
+MONGO_COLLECTION = "sensor-collection"
+
+API_HOST = "us-east-2.aws.data.mongodb-api.com"
+API_ENDPOINT = "/app/data-mjzzu/endpoint/data/v1/action/insertOne"
+
 session = boto3.session.Session()
 client = session.client(
     service_name = 'secretsmanager',
@@ -41,34 +45,57 @@ except ClientError as e:
     # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
     raise e
 
-def encode_to_base64(input_string):
+HEADERS = {
+    "Content-Type": "application/json",
+    "Access-Control-Request-Headers": "*",
+    "api-key": mongo_api_key
+}
+
+conn = http.client.HTTPSConnection(API_HOST)
+
+
+def insert_key_value(key, val): # into MongoDB
+    payload = {
+        "dataSource": MONGO_DATASOURCE,
+        "database": MONGO_DATABASE,
+        "collection": MONGO_COLLECTION,
+        "document": {
+            "key": key,
+            "value": val,
+        }
+    }
+
+    conn.request("POST", API_ENDPOINT, body=json.dumps(payload), headers=HEADERS)
+    response = conn.getresponse()
+
+    response_data = response.read().decode()
+    if response.status == 201:
+        logger.info("Document inserted successfully.")
+        logger.debug("Response: " + response_data)
+    else:
+        logger.error("Failed to insert document.")
+        logger.info("Status Code: " + str(response.status))
+        logger.info("Response: " + response_data)
+
+
+
+def encode_to_base64(input_string): # returns a string
     byte_data = input_string.encode('utf-8')
     base64_encoded = base64.b64encode(byte_data)
     return base64_encoded.decode('utf-8')
 
-def lambda_handler(event, context):
+
+def lambda_handler(event, context): # entry point for the lambda
     logger.info("Event: " + json.dumps(event))
     
-    bucket_name = BUCKET
+    #bucket_name = BUCKET
     key = event['queryStringParameters']['key']
-    value = event['queryStringParameters']['value']
+    val = event['queryStringParameters']['value']
 
     # base64 sanitizes the input
-    key = FOLDER + '/' + encode_to_base64(key)
-        
-    try:
-        # Check if the file already exists
-        s3.head_object(Bucket=bucket_name, Key=key)
-        # If the file exists, return an error
-        return {
-            'statusCode': 409,
-            'body': json.dumps('File already exists.')
-        }
-    except:
-        pass # expected if the file doesn't exist
+    key = encode_to_base64(key)
 
-    s3.put_object(Bucket=bucket_name, Key=key, Body=value)
-    return {
-        'statusCode': 200,
-        'body': json.dumps('File created successfully.')
-    }
+    insert_key_value(key, val)
+
+
+#conn.close() # TODO: Is there a place for Lambda teardown so we can be nice?

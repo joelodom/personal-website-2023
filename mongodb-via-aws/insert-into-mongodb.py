@@ -3,17 +3,19 @@
 # into the lambda function.
 #
 
-import requests
+import http.client
 import json
 
-#API_URL = "https://us-east-2.aws.data.mongodb-api.com/app/data-mjzzu/endpoint/data/v1"
-API_URL = "https://us-east-2.aws.data.mongodb-api.com/app/data-mjzzu/endpoint/data/v1/action/insertOne"
+API_HOST = "us-east-2.aws.data.mongodb-api.com"
+API_ENDPOINT = "/app/data-mjzzu/endpoint/data/v1/action/insertOne"
 
 HEADERS = {
     "Content-Type": "application/json",
     "Access-Control-Request-Headers": "*",
-    "api-key": "PULL FROM SECRET MGR"
+    "api-key": ""
 }
+
+conn = http.client.HTTPSConnection(API_HOST)
 
 def insert_key_value(key, value):
     payload = {
@@ -26,16 +28,18 @@ def insert_key_value(key, value):
         }
     }
 
-    response = requests.post(API_URL, headers=HEADERS, data=json.dumps(payload))
+    conn.request("POST", API_ENDPOINT, body=json.dumps(payload), headers=HEADERS)
+    response = conn.getresponse()
 
-    if response.status_code == 201:
-        pass
-        #print("Document inserted successfully.")
-        #print("Response:", response.json())
+    response_data = response.read().decode()
+    if response.status == 201:
+        print("Document inserted successfully.")
+        print("Response:", response_data)
     else:
-        pass
-        #print("Failed to insert document.")
-        #print("Status Code:", response.status_code)
-        #print("Response:", response.text)
+        print("Failed to insert document.")
+        print("Status Code:", response.status)
+        print("Response:", response_data)
 
-insert_key_value("key123", "value123")
+insert_key_value("joel", "31415")
+
+#conn.close()
