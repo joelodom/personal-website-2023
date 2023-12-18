@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Joel's Sample AWS Application that Uses MongoDB</title>
+    <title>Sample AWS Application that Uses MongoDB</title>
     <script>
         function generateRandomBase64() {
             var array = new Uint8Array(32); // 256 bits
@@ -16,10 +16,24 @@
             // Making a GET request
             window.location.href = url;
         }
+
+        function fetchData() {
+            var apiUrl = 'https://gl3eypcm00.execute-api.us-east-1.amazonaws.com/default/pull-sensor-data';
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('jsonData').textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
     </script>
 </head>
 <body>
     <input type="text" id="inputBox" placeholder="Enter some text to store:">
     <button onclick="submitData()">Submit</button>
+    <button onclick="fetchData()">Get Latest Data</button>
+
+    <h2>Most Recently Submitted Data:</h2>
+    <pre id="jsonData"></pre> <!-- Display area for JSON data -->
 </body>
 </html>
